@@ -76,8 +76,8 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
 
 app.get('/api/users', async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT * FROM users ORDER BY created_at DESC');
-    res.json(rows);
+    const result = await pool.query('SELECT * FROM users ORDER BY created_at DESC');
+    res.json(result.rows);
   } catch (error) {
     res.status(500).json({ error: "Error del servidor", details: error.message });
   }
@@ -145,7 +145,7 @@ app.post('/api/loans', async (req, res) => {
         returnDate.setDate(returnDate.getDate() + parseInt(days));
 
         const loanResult = await connection.query(
-            'INSERT INTO loans (user_id, book_id, return_date) VALUES ($1, $2, $3) RETURNING id',
+            'INSERT INTO loans (user_id, book_id, return_date) VALUES ($1, $2, $3) RETURNING *',
             [user_id, book_id, returnDate]
         );
 
@@ -155,7 +155,7 @@ app.post('/api/loans', async (req, res) => {
         );
 
         await connection.query('COMMIT');
-        res.status(201).json({ id: loanResult.rows[0].id, message: 'Loan created' });
+        res.status(201).json(loanResult.rows[0]);
 
     } catch (error) {
         await connection.query('ROLLBACK');
@@ -204,8 +204,8 @@ app.get('/api/notifications', async (req, res) => {
 
 app.get('/api/books', async (req, res) => {
     try {
-        const [rows] = await pool.query('SELECT * FROM books ORDER BY created_at DESC');
-        res.json(rows); 
+        const result = await pool.query('SELECT * FROM books ORDER BY created_at DESC');
+        res.json(result.rows); 
     } catch (error) {
         res.status(500).json({ error: "Error del servidor", details: error.message });
     }
@@ -311,8 +311,8 @@ app.post('/api/login', async (req, res) => {
 
 app.get('/api/staff', async (req, res) => {
     try {
-        const [rows] = await pool.query('SELECT id, name, email, role, created_at FROM staff');
-        res.json(rows);
+        const result = await pool.query('SELECT id, name, email, role, created_at FROM staff');
+        res.json(result.rows);
     } catch (error) {
         res.status(500).json({ error: "Error del servidor", details: error.message });
     }
