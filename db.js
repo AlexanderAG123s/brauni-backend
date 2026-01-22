@@ -1,14 +1,11 @@
-const mysql = require('mysql2/promise');
+const { Pool } = require('pg');
 require('dotenv').config();
 
-const pool = mysql.createPool({
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'brauni_library_db',
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:@localhost:5432/brauni_library_db',
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
 module.exports = pool;
