@@ -198,10 +198,8 @@ app.get('/api/notifications', async (req, res) => {
         res.status(500).json({ error: "Error del servidor", details: error.message });
     }
 });
-    } catch (error) {
-        res.status(500).json({ error: "Error del servidor", details: error.message });
-    }
-});
+
+// --- STATS ROUTE ---
 
 // --- BOOK ROUTES ---
 
