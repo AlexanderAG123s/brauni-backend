@@ -86,29 +86,28 @@ app.get('/api/users', async (req, res) => {
 app.post('/api/users', async (req, res) => {
   const { name, matricula, career, email, phone } = req.body;
   try {
-    const [result] = await pool.query(
-      'INSERT INTO users (name, matricula, career, email, phone) VALUES (?, ?, ?, ?, ?)',
+    const result = await pool.query(
+      'INSERT INTO users (name, matricula, career, email, phone) VALUES ($1, $2, $3, $4, $5) RETURNING *',
       [name, matricula, career, email, phone]
     );
-    const [newUser] = await pool.query('SELECT * FROM users WHERE id = ?', [result.insertId]);
-    res.status(201).json(newUser[0]);
+    res.status(201).json(result.rows[0]);
   } catch (error) {
-    if (error.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Matricula already exists' });
+    if (error.code === '23505') return res.status(409).json({ error: 'Matricula already exists' });
     res.status(500).json({ error: "Error del servidor", details: error.message });
   }
 });
 
 app.get('/api/users/:id/history', async (req, res) => {
     try {
-        const [rows] = await pool.query(`
+        const result = await pool.query(`
             SELECT l.id, l.loan_date, l.return_date, l.status, b.title, b.author 
             FROM loans l 
             JOIN books b ON l.book_id = b.id 
-            WHERE l.user_id = ? 
+            WHERE l.user_id = $1 
             ORDER BY l.loan_date DESC`, 
             [req.params.id]
         );
-        res.json(rows);
+        res.json(result.rows);
     } catch (error) {
         res.status(500).json({ error: "Error del servidor", details: error.message });
     }
@@ -117,7 +116,7 @@ app.get('/api/users/:id/history', async (req, res) => {
 app.put('/api/users/:id', async (req, res) => {
     const { name, email, phone, status } = req.body;
     try {
-        await pool.query('UPDATE users SET name = ?, email = ?, phone = ?, status = ? WHERE id = ?', [name, email, phone, status, req.params.id]);
+        await pool.query('UPDATE users SET name = $1, email = $2, phone = $3, status = $4 WHERE id = $5', [name, email, phone, status, req.params.id]);
         res.json({ success: true });
     } catch (error) {
         res.status(500).json({ error: "Error del servidor", details: error.message });
@@ -126,7 +125,7 @@ app.put('/api/users/:id', async (req, res) => {
 
 app.delete('/api/users/:id', async (req, res) => {
     try {
-        await pool.query('DELETE FROM users WHERE id = ?', [req.params.id]);
+        await pool.query('DELETE FROM users WHERE id = $1', [req.params.id]);
         res.json({ success: true });
     } catch (error) {
         res.status(500).json({ error: "Error del servidor", details: error.message });
@@ -217,14 +216,13 @@ app.post('/api/books', upload.single('image'), async (req, res) => {
     const imagePath = req.file ? `/uploads/${req.file.filename}` : null;
     
     try {
-        const [result] = await pool.query(
-            'INSERT INTO books (title, author, isbn, category, cover_color, cover_image) VALUES (?, ?, ?, ?, ?, ?)',
+        const result = await pool.query(
+            'INSERT INTO books (title, author, isbn, category, cover_color, cover_image) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
             [title, author, isbn, category, cover_color || '#3b82f6', imagePath]
         );
-        const [newBook] = await pool.query('SELECT * FROM books WHERE id = ?', [result.insertId]);
-        res.status(201).json(newBook[0]);
+        res.status(201).json(result.rows[0]);
     } catch (error) {
-        if (error.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'ISBN already exists' });
+        if (error.code === '23505') return res.status(409).json({ error: 'ISBN already exists' });
         res.status(500).json({ error: "Error del servidor", details: error.message });
     }
 });
@@ -232,7 +230,7 @@ app.post('/api/books', upload.single('image'), async (req, res) => {
 app.put('/api/books/:id', async (req, res) => {
     const { status } = req.body;
     try {
-         await pool.query('UPDATE books SET status = ? WHERE id = ?', [status, req.params.id]);
+         await pool.query('UPDATE books SET status = $1 WHERE id = $2', [status, req.params.id]);
          res.json({ success: true });
     } catch (error) {
         res.status(500).json({ error: "Error del servidor", details: error.message });
@@ -241,7 +239,7 @@ app.put('/api/books/:id', async (req, res) => {
 
 app.delete('/api/books/:id', async (req, res) => {
     try {
-        await pool.query('DELETE FROM books WHERE id = ?', [req.params.id]);
+        await pool.query('DELETE FROM books WHERE id = $1', [req.params.id]);
         res.json({ success: true, message: 'Libro eliminado exitosamente' });
     } catch (error) {
         res.status(500).json({ error: "Error del servidor", details: error.message });
@@ -324,7 +322,7 @@ app.post('/api/staff', async (req, res) => {
     const { name, email, password, role } = req.body;
     try {
         const hashedPassword = await require('bcryptjs').hash(password, 10);
-        await pool.query('INSERT INTO staff (name, email, password, role) VALUES (?, ?, ?, ?)', [name, email, hashedPassword, role]);
+        await pool.query('INSERT INTO staff (name, email, password, role) VALUES ($1, $2, $3, $4)', [name, email, hashedPassword, role]);
         res.json({ success: true });
     } catch (error) {
         res.status(500).json({ error: "Error del servidor", details: error.message });
