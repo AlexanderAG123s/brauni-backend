@@ -323,6 +323,39 @@ app.delete('/api/staff/:id', async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+app.get('/api/health', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT NOW()');
+        res.json({ 
+            status: 'OK', 
+            message: 'Base de datos conectada correctamente',
+            timestamp: result.rows[0].now,
+            database: {
+                host: process.env.DB_HOST || 'localhost',
+                name: process.env.DB_NAME || 'brauni_library_db'
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ 
+            status: 'ERROR', 
+            message: 'Error de conexión con la base de datos',
+            error: error.message
+        });
+    }
 });
+
+app.listen(PORT, async () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+  
+  // Test database connection
+  try {
+    const result = await pool.query('SELECT NOW()');
+    console.log(' Base de datos conectada correctamente');
+    console.log(` Base de datos: ${process.env.DB_NAME || 'brauni_library_db'}`);
+    console.log(` Host: ${process.env.DB_HOST || 'localhost'}`);
+  } catch (error) {
+    console.error(' Error conectando a la base de datos:', error.message);
+    console.error('Verifica las variables de entorno: DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME');
+  }
+});
+
