@@ -362,3 +362,5 @@ app.listen(PORT, async () => {
   } catch (error) {
     console.error('❌ Error conectando a la base de datos:', error.message);
     console.error('Verifica la variable DATABASE_URL');
+  }
+});
