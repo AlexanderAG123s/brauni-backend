@@ -137,29 +137,29 @@ app.delete('/api/users/:id', async (req, res) => {
 
 app.post('/api/loans', async (req, res) => {
     const { user_id, book_id, days = 7 } = req.body; // Default 7 days
-    const connection = await pool.getConnection();
+    const connection = await pool.connect();
     try {
-        await connection.beginTransaction();
+        await connection.query('BEGIN');
 
-        // Calculate due_date
-        const dueDate = new Date();
-        dueDate.setDate(dueDate.getDate() + parseInt(days));
+        // Calculate return_date
+        const returnDate = new Date();
+        returnDate.setDate(returnDate.getDate() + parseInt(days));
 
-        const [loanResult] = await connection.query(
-            'INSERT INTO loans (user_id, book_id, due_date) VALUES (?, ?, ?)',
-            [user_id, book_id, dueDate]
+        const loanResult = await connection.query(
+            'INSERT INTO loans (user_id, book_id, return_date) VALUES ($1, $2, $3) RETURNING id',
+            [user_id, book_id, returnDate]
         );
 
         await connection.query(
-            'UPDATE books SET status = ? WHERE id = ?',
+            'UPDATE books SET status = $1 WHERE id = $2',
             ['Loaned', book_id]
         );
 
-        await connection.commit();
-        res.status(201).json({ id: loanResult.insertId, message: 'Loan created' });
+        await connection.query('COMMIT');
+        res.status(201).json({ id: loanResult.rows[0].id, message: 'Loan created' });
 
     } catch (error) {
-        await connection.rollback();
+        await connection.query('ROLLBACK');
         res.status(500).json({ error: "Error del servidor", details: error.message });
     } finally {
         connection.release();
@@ -169,7 +169,7 @@ app.post('/api/loans', async (req, res) => {
 app.get('/api/loans', async (req, res) => {
     try {
         const result = await pool.query(`
-            SELECT l.id, l.loan_date, l.due_date, l.status, u.name as user_name, b.title as book_title, b.cover_color
+            SELECT l.id, l.loan_date, l.return_date, l.status, u.name as user_name, b.title as book_title, b.cover_color
             FROM loans l
             JOIN users u ON l.user_id = u.id
             JOIN books b ON l.book_id = b.id
@@ -186,14 +186,18 @@ app.get('/api/loans', async (req, res) => {
 app.get('/api/notifications', async (req, res) => {
     try {
         const result = await pool.query(`
-            SELECT l.id, l.due_date, u.name as user_name, b.title as book_title
+            SELECT l.id, l.return_date, u.name as user_name, b.title as book_title
             FROM loans l
             JOIN users u ON l.user_id = u.id
             JOIN books b ON l.book_id = b.id
-            WHERE l.status = 'Active' AND l.due_date < NOW()
-            ORDER BY l.due_date ASC
+            WHERE l.status = 'Active' AND l.return_date < NOW()
+            ORDER BY l.return_date ASC
         `);
         res.json(result.rows);
+    } catch (error) {
+        res.status(500).json({ error: "Error del servidor", details: error.message });
+    }
+});
     } catch (error) {
         res.status(500).json({ error: "Error del servidor", details: error.message });
     }
