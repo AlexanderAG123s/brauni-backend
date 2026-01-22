@@ -5,7 +5,7 @@ async function createAdmin() {
   const name = 'Administrador';
   const email = 'admin@brauni.edu';
   const password = 'admin123456'; // Cambiar a algo más seguro
-  const role = 'admin';
+  const role = 'Admin';
 
   try {
     // Hash the password
