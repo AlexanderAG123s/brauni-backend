@@ -331,7 +331,7 @@ app.post('/api/staff', async (req, res) => {
 
 app.delete('/api/staff/:id', async (req, res) => {
     try {
-        await pool.query('DELETE FROM staff WHERE id = ?', [req.params.id]);
+        await pool.query('DELETE FROM staff WHERE id = $1', [req.params.id]);
         res.json({ success: true });
     } catch (error) {
         res.status(500).json({ error: "Error del servidor", details: error.message });
