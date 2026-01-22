@@ -168,7 +168,7 @@ app.post('/api/loans', async (req, res) => {
 
 app.get('/api/loans', async (req, res) => {
     try {
-        const [rows] = await pool.query(`
+        const result = await pool.query(`
             SELECT l.id, l.loan_date, l.due_date, l.status, u.name as user_name, b.title as book_title, b.cover_color
             FROM loans l
             JOIN users u ON l.user_id = u.id
@@ -176,7 +176,7 @@ app.get('/api/loans', async (req, res) => {
             ORDER BY l.loan_date DESC
             LIMIT 20
         `);
-        res.json(rows);
+        res.json(result.rows);
     } catch (error) {
         res.status(500).json({ error: "Error del servidor", details: error.message });
     }
@@ -185,7 +185,7 @@ app.get('/api/loans', async (req, res) => {
 // GET /api/notifications (Overdue Loans)
 app.get('/api/notifications', async (req, res) => {
     try {
-        const [rows] = await pool.query(`
+        const result = await pool.query(`
             SELECT l.id, l.due_date, u.name as user_name, b.title as book_title
             FROM loans l
             JOIN users u ON l.user_id = u.id
@@ -193,7 +193,7 @@ app.get('/api/notifications', async (req, res) => {
             WHERE l.status = 'Active' AND l.due_date < NOW()
             ORDER BY l.due_date ASC
         `);
-        res.json(rows);
+        res.json(result.rows);
     } catch (error) {
         res.status(500).json({ error: "Error del servidor", details: error.message });
     }
@@ -250,28 +250,28 @@ app.delete('/api/books/:id', async (req, res) => {
 
 app.get('/api/stats', async (req, res) => {
     try {
-        const [loansTotal] = await pool.query('SELECT COUNT(*) as count FROM loans');
-        const [usersTotal] = await pool.query('SELECT COUNT(*) as count FROM users');
-        const [booksTotal] = await pool.query('SELECT COUNT(*) as count FROM books');
-        const [activeLoans] = await pool.query('SELECT COUNT(*) as count FROM books WHERE status = "Loaned"');
-        const [lostBooks] = await pool.query('SELECT COUNT(*) as count FROM books WHERE status = "Lost"');
+        const loansTotal = await pool.query('SELECT COUNT(*) as count FROM loans');
+        const usersTotal = await pool.query('SELECT COUNT(*) as count FROM users');
+        const booksTotal = await pool.query('SELECT COUNT(*) as count FROM books');
+        const activeLoans = await pool.query('SELECT COUNT(*) as count FROM books WHERE status = \'Loaned\'');
+        const lostBooks = await pool.query('SELECT COUNT(*) as count FROM books WHERE status = \'Lost\'');
 
-        // Simple monthly aggregation
-        const [monthlyStats] = await pool.query(`
-            SELECT DATE_FORMAT(loan_date, '%b') as month, COUNT(*) as count 
+        // Simple monthly aggregation - PostgreSQL DATE format
+        const monthlyStats = await pool.query(`
+            SELECT TO_CHAR(loan_date, 'Mon') as month, COUNT(*) as count 
             FROM loans 
-            WHERE loan_date >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
-            GROUP BY month 
+            WHERE loan_date >= NOW() - INTERVAL '6 months'
+            GROUP BY TO_CHAR(loan_date, 'Mon')
             ORDER BY MIN(loan_date) ASC
         `);
 
         res.json({
-            loans: loansTotal[0].count,
-            users: usersTotal[0].count,
-            books: booksTotal[0].count,
-            active_loans: activeLoans[0].count,
-            lost: lostBooks[0].count,
-            chart: monthlyStats
+            loans: loansTotal.rows[0].count,
+            users: usersTotal.rows[0].count,
+            books: booksTotal.rows[0].count,
+            active_loans: activeLoans.rows[0].count,
+            lost: lostBooks.rows[0].count,
+            chart: monthlyStats.rows
         });
     } catch (error) {
         res.status(500).json({ error: "Error del servidor", details: error.message });
