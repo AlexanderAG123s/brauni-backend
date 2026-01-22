@@ -15,6 +15,20 @@ app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Request/Response Logging Middleware
+app.use((req, res, next) => {
+  const start = Date.now();
+  const originalSend = res.send;
+  res.send = function(data) {
+    const duration = Date.now() - start;
+    const statusCode = res.statusCode;
+    const status = statusCode >= 400 ? "[ERR]" : "[OK]";
+    console.log(status + " [" + new Date().toLocaleTimeString() + "] " + req.method + " " + req.path + " - " + statusCode + " (" + duration + "ms)");
+    return originalSend.call(this, data);
+  };
+  next();
+});
+
 const { handleChat } = require('./chatService');
 
 // --- CHAT ROUTE (DISABLED) ---
@@ -29,7 +43,7 @@ const { handleChat } = require('./chatService');
 //         res.json(response);
 //     } catch (error) {
 //         console.error('Chat Error:', error);
-//         res.status(500).json({ error: error.message });
+//         res.status(500).json({ error: "Error del servidor", details: error.message });
 //     }
 // });
 
@@ -65,7 +79,7 @@ app.get('/api/users', async (req, res) => {
     const [rows] = await pool.query('SELECT * FROM users ORDER BY created_at DESC');
     res.json(rows);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: "Error del servidor", details: error.message });
   }
 });
 
@@ -80,7 +94,7 @@ app.post('/api/users', async (req, res) => {
     res.status(201).json(newUser[0]);
   } catch (error) {
     if (error.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Matricula already exists' });
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: "Error del servidor", details: error.message });
   }
 });
 
@@ -96,7 +110,7 @@ app.get('/api/users/:id/history', async (req, res) => {
         );
         res.json(rows);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: "Error del servidor", details: error.message });
     }
 });
 
@@ -106,7 +120,7 @@ app.put('/api/users/:id', async (req, res) => {
         await pool.query('UPDATE users SET name = ?, email = ?, phone = ?, status = ? WHERE id = ?', [name, email, phone, status, req.params.id]);
         res.json({ success: true });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: "Error del servidor", details: error.message });
     }
 });
 
@@ -115,7 +129,7 @@ app.delete('/api/users/:id', async (req, res) => {
         await pool.query('DELETE FROM users WHERE id = ?', [req.params.id]);
         res.json({ success: true });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: "Error del servidor", details: error.message });
     }
 });
 
@@ -146,7 +160,7 @@ app.post('/api/loans', async (req, res) => {
 
     } catch (error) {
         await connection.rollback();
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: "Error del servidor", details: error.message });
     } finally {
         connection.release();
     }
@@ -164,7 +178,7 @@ app.get('/api/loans', async (req, res) => {
         `);
         res.json(rows);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: "Error del servidor", details: error.message });
     }
 });
 
@@ -181,7 +195,7 @@ app.get('/api/notifications', async (req, res) => {
         `);
         res.json(rows);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: "Error del servidor", details: error.message });
     }
 });
 
@@ -192,7 +206,7 @@ app.get('/api/books', async (req, res) => {
         const [rows] = await pool.query('SELECT * FROM books ORDER BY created_at DESC');
         res.json(rows); 
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: "Error del servidor", details: error.message });
     }
 });
 
@@ -209,7 +223,7 @@ app.post('/api/books', upload.single('image'), async (req, res) => {
         res.status(201).json(newBook[0]);
     } catch (error) {
         if (error.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'ISBN already exists' });
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: "Error del servidor", details: error.message });
     }
 });
 
@@ -219,7 +233,7 @@ app.put('/api/books/:id', async (req, res) => {
          await pool.query('UPDATE books SET status = ? WHERE id = ?', [status, req.params.id]);
          res.json({ success: true });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: "Error del servidor", details: error.message });
     }
 });
 
@@ -228,7 +242,7 @@ app.delete('/api/books/:id', async (req, res) => {
         await pool.query('DELETE FROM books WHERE id = ?', [req.params.id]);
         res.json({ success: true, message: 'Libro eliminado exitosamente' });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: "Error del servidor", details: error.message });
     }
 });
 
@@ -260,7 +274,7 @@ app.get('/api/stats', async (req, res) => {
             chart: monthlyStats
         });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: "Error del servidor", details: error.message });
     }
 });
 
@@ -288,7 +302,7 @@ app.post('/api/login', async (req, res) => {
         });
 
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: "Error del servidor", details: error.message });
     }
 });
 
@@ -299,7 +313,7 @@ app.get('/api/staff', async (req, res) => {
         const [rows] = await pool.query('SELECT id, name, email, role, created_at FROM staff');
         res.json(rows);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: "Error del servidor", details: error.message });
     }
 });
 
@@ -310,7 +324,7 @@ app.post('/api/staff', async (req, res) => {
         await pool.query('INSERT INTO staff (name, email, password, role) VALUES (?, ?, ?, ?)', [name, email, hashedPassword, role]);
         res.json({ success: true });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: "Error del servidor", details: error.message });
     }
 });
 
@@ -319,7 +333,7 @@ app.delete('/api/staff/:id', async (req, res) => {
         await pool.query('DELETE FROM staff WHERE id = ?', [req.params.id]);
         res.json({ success: true });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: "Error del servidor", details: error.message });
     }
 });
 
