@@ -18,7 +18,8 @@
     "groq-sdk": "^0.37.0",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.0.2",
-    "mysql2": "^3.9.1"
+    "mysql2": "^3.9.1",
+    "pg": "^8.17.2"
   },
   "devDependencies": {
     "nodemon": "^3.0.3"

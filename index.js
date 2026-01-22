@@ -338,7 +338,7 @@ app.get('/api/health', async (req, res) => {
     } catch (error) {
         res.status(500).json({ 
             status: 'ERROR', 
-            message: 'Error de conexi�n con la base de datos',
+            message: 'Error de conexi�n con la base de datos',
             error: error.message
         });
     }
@@ -350,12 +350,15 @@ app.listen(PORT, async () => {
   // Test database connection
   try {
     const result = await pool.query('SELECT NOW()');
-    console.log(' Base de datos conectada correctamente');
-    console.log(` Base de datos: ${process.env.DB_NAME || 'brauni_library_db'}`);
-    console.log(` Host: ${process.env.DB_HOST || 'localhost'}`);
+    const dbUrl = process.env.DATABASE_URL || '';
+    const hostMatch = dbUrl.match(/@([^:]+)/);
+    const dbMatch = dbUrl.match(/\/([^?]+)$/);
+    const host = hostMatch ? hostMatch[1] : 'unknown';
+    const dbName = dbMatch ? dbMatch[1] : 'unknown';
+    
+    console.log('✅ Base de datos conectada correctamente');
+    console.log(`📊 Base de datos: ${dbName}`);
+    console.log(`🔗 Host: ${host}`);
   } catch (error) {
-    console.error(' Error conectando a la base de datos:', error.message);
-    console.error('Verifica las variables de entorno: DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME');
-  }
-});
-
+    console.error('❌ Error conectando a la base de datos:', error.message);
+    console.error('Verifica la variable DATABASE_URL');
